@@ -1,0 +1,6 @@
+{
+  "model": "LightGBM",
+  "theta": 0.6,
+  "normal_admitted": 0.9810057169525143,
+  "attack_blocked": 0.9256926217556138
+}

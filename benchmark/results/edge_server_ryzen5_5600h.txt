@@ -1,0 +1,23 @@
+Platform: AMD64 Family 25 Model 80 Stepping 0, AuthenticAMD | Python 3.13.2
+Operation                               Time (ms)
+T_pm (fixed-base a*P)                      0.0268
+T_pm (variable-base a*X)                   0.0423
+T_h (SHA-256)                              0.0006
+T_hmac (HMAC-SHA256)                       0.0022
+T_s (AES-256)                              0.0045
+Paillier-1024 Enc                          9.6056
+Paillier-1024 Dec                          2.7944
+Paillier-1024 Add (homomorphic)            0.0112
+Paillier-2048 Enc                         70.0462
+Paillier-2048 Dec                         19.0129
+Paillier-2048 Add (homomorphic)            0.0348
+Paillier-3072 Enc                        214.3821
+Paillier-3072 Dec                         60.9886
+Paillier-3072 Add (homomorphic)            0.0693
+
+Scheme                              User (ms)  Server (ms)  Total (ms)
+Liu et al. 2023 [S1]                    0.135        0.134       0.269
+Appl. Sci. 2024 14:3187 [S2]            0.129        0.129       0.258
+Sensors 2024 24:7967 [S3]               0.088        0.088       0.176
+TAPS-MCC (full)                         0.176        0.172       0.349
+TAPS-MCC (online, precomputed)          0.092        0.088       0.179

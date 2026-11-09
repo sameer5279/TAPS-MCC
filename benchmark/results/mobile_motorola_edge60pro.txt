@@ -1,0 +1,23 @@
+Platform: aarch64 | Python 3.14.8
+Operation                               Time (ms)
+T_pm (fixed-base a*P)                      0.0558
+T_pm (variable-base a*X)                   0.0800
+T_h (SHA-256)                              0.0012
+T_hmac (HMAC-SHA256)                       0.0041
+T_s (AES-256)                              0.0111
+Paillier-1024 Enc                         23.3945
+Paillier-1024 Dec                          7.6238
+Paillier-1024 Add (homomorphic)            0.0249
+Paillier-2048 Enc                        171.5858
+Paillier-2048 Dec                         47.7433
+Paillier-2048 Add (homomorphic)            0.0826
+Paillier-3072 Enc                        531.8303
+Paillier-3072 Dec                        149.4843
+Paillier-3072 Add (homomorphic)            0.1664
+
+Scheme                              User (ms)  Server (ms)  Total (ms)
+Liu et al. 2023 [S1]                    0.259        0.256       0.515
+Appl. Sci. 2024 14:3187 [S2]            0.244        0.244       0.488
+Sensors 2024 24:7967 [S3]               0.166        0.166       0.333
+TAPS-MCC (full)                         0.334        0.326       0.660
+TAPS-MCC (online, precomputed)          0.174        0.166       0.340

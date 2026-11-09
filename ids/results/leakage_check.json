@@ -1,0 +1,4 @@
+{
+  "single_feature_accuracy": 0.825,
+  "feature": "tcp.flags"
+}

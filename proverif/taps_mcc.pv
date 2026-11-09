@@ -1,0 +1,113 @@
+(* =====================================================================
+   TAPS-MCC: Trust-Aware, Privacy-Preserving Secure Architecture for MCC
+   Formal model of Phase 2 - login, mutual authentication, key agreement
+   between Mobile User (MU) and Edge Server (ES).
+   Tool: ProVerif 2.x      Run:  proverif taps_mcc.pv
+   ===================================================================== *)
+
+(* ---------- Channels ---------- *)
+free ch: channel.                         (* public, Dolev-Yao channel *)
+
+(* ---------- Types ---------- *)
+type scalar.
+type point.
+type key.
+
+(* ---------- ECC point multiplication (CDH abstraction) ---------- *)
+const P: point.
+fun mul(scalar, point): point.
+equation forall x: scalar, y: scalar; mul(x, mul(y, P)) = mul(y, mul(x, P)).
+
+(* ---------- Hash functions and symmetric primitives ---------- *)
+fun h(bitstring): bitstring.              (* one-way hash h(.) *)
+fun H(bitstring): key.                    (* hash-to-key H(.) *)
+fun kdf(bitstring): key.                  (* SK -> symmetric key *)
+fun senc(bitstring, key): bitstring.
+reduc forall m: bitstring, k: key; sdec(senc(m, k), k) = m.
+(* Note: DID_i = PID_i XOR H(K1||T1) is modelled as senc(PID_i, H(K1,T1)),
+   the standard ProVerif abstraction of XOR masking. *)
+
+(* ---------- Identities, long-term secrets ---------- *)
+free IDes:  bitstring.                    (* public ES identity *)
+free PIDi:  bitstring [private].          (* honest MU pseudo-identity *)
+free ui:    scalar    [private].          (* honest MU private key *)
+free xj:    scalar    [private].          (* ES private key *)
+free secretMU: bitstring [private].       (* test payloads under SK *)
+free secretES: bitstring [private].
+
+(* ES registry (PID_i, U_i) issued by TA - public values only *)
+table registry(bitstring, point).
+
+(* ---------- Events for authentication ---------- *)
+event MUAccept(bitstring, point, point, bitstring).
+event ESRunning(bitstring, point, point, bitstring).
+event ESAccept(bitstring, point, point, bitstring).
+
+(* ---------- Security queries ---------- *)
+(* Secrecy of session key (tested via payloads), PFS covered by phase 1 *)
+query attacker(secretMU).
+query attacker(secretES).
+(* Anonymity of user identity, secrecy of long-term keys before compromise *)
+query attacker(PIDi) phase 0.
+query attacker(ui) phase 0.
+query attacker(xj) phase 0.
+(* Mutual authentication (injective agreement) *)
+(* ES authenticates the honest MU; insider sessions under PIDe are excluded *)
+query a: point, b: point, k: bitstring;
+      inj-event(ESAccept(PIDi, a, b, k)) ==> inj-event(MUAccept(PIDi, a, b, k)).
+query p: bitstring, a: point, b: point, k: bitstring;
+      inj-event(MUAccept(p, a, b, k)) ==> inj-event(ESRunning(p, a, b, k)).
+
+(* ---------- Mobile User process ---------- *)
+let MU(u: scalar, pid: bitstring, Xj: point) =
+  new a: scalar;
+  new T1: bitstring;
+  let A  = mul(a, P) in
+  let K1 = mul(a, Xj) in
+  let Ks = mul(u, Xj) in
+  let DID = senc(pid, H((K1, T1))) in
+  let M1  = h((pid, A, Ks, T1)) in
+  out(ch, (DID, A, M1, T1));                                   (* Msg1 *)
+  in(ch, (B: point, M2: bitstring, T2: bitstring));            (* Msg2 *)
+  let K2 = mul(a, B) in
+  let SK = h((pid, IDes, K2, Ks, T1, T2)) in
+  if M2 = h((SK, B, Ks, T2)) then
+  event MUAccept(pid, A, B, SK);
+  new T3: bitstring;
+  out(ch, (h((SK, pid, T3)), T3));                             (* Msg3 *)
+  if pid = PIDi then out(ch, senc(secretMU, kdf(SK))).
+
+(* ---------- Edge Server process ---------- *)
+let ES(x: scalar) =
+  in(ch, (DID: bitstring, A: point, M1: bitstring, T1: bitstring));
+  let K1 = mul(x, A) in
+  let pid: bitstring = sdec(DID, H((K1, T1))) in
+  get registry(=pid, Ui) in
+  let Ks = mul(x, Ui) in
+  if M1 = h((pid, A, Ks, T1)) then
+  new b: scalar;
+  new T2: bitstring;
+  let B  = mul(b, P) in
+  let K2 = mul(b, A) in
+  let SK = h((pid, IDes, K2, Ks, T1, T2)) in
+  event ESRunning(pid, A, B, SK);
+  out(ch, (B, h((SK, B, Ks, T2)), T2));                        (* Msg2 *)
+  in(ch, (M3: bitstring, T3: bitstring));                      (* Msg3 *)
+  if M3 = h((SK, pid, T3)) then
+  event ESAccept(pid, A, B, SK);
+  if pid = PIDi then out(ch, senc(secretES, kdf(SK))).
+
+(* ---------- Main process ---------- *)
+process
+  let Xj = mul(xj, P) in out(ch, Xj);           (* ES public key *)
+  let Ui = mul(ui, P) in out(ch, Ui);           (* MU public key *)
+  insert registry(PIDi, Ui);
+  (* Insider (A6): a malicious but registered user *)
+  new uE: scalar; new PIDe: bitstring;
+  insert registry(PIDe, mul(uE, P));
+  out(ch, (uE, PIDe));
+  (
+    (! MU(ui, PIDi, Xj)) | (! ES(xj))
+    (* Perfect forward secrecy (G3): long-term keys leaked after sessions *)
+    | (phase 1; out(ch, (ui, xj)))
+  )
