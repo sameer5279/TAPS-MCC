@@ -46,4 +46,4 @@ MIT; see `LICENSE`.
 
 ## Contact
 
-Corresponding author: Syed Wajahat Abbas Rizvi (swarizvi@lko.amity.edu)
+Corresponding author: Sameer Awasthi (sameer.awasthi@s.amity.edu)
